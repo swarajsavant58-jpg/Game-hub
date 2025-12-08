@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ Reaction Speed Game</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f7f7f7;
+    color: #000;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+  }
+
+  header {
+    background: #333;
+    color: #fff;
+    padding: 15px;
+    font-size: 22px;
+    font-weight: bold;
+  }
+
+  .ad {
+    margin: 20px auto;
+    padding: 10px;
+    border: 2px dashed #ccc;
+    background: #eee;
+    color: #666;
+    font-size: 14px;
+    text-align: center;
+    width: 90%;
+    max-width: 728px;
+  }
+
+  #gameBox {
+    width: 300px;
+    height: 300px;
+    margin: 50px auto;
+    background: #ccc;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    transition: background 0.3s;
+    user-select: none;
+  }
+
+  #gameBox.wait {
+    background: #ccc;
+  }
+
+  #gameBox.ready {
+    background: #f44336;
+    color: white;
+  }
+
+  #gameBox.go {
+    background: #4CAF50;
+    color: white;
+  }
+
+  #result {
+    margin-top: 25px;
+    font-size: 22px;
+    font-weight: bold;
+  }
+
+  #avgTime {
+    margin-top: 10px;
+    font-size: 18px;
+    color: #444;
+  }
+
+  #resetBtn {
+    margin-top: 25px;
+    padding: 10px 20px;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.2s, background 0.3s;
+  }
+
+  #resetBtn:hover {
+    background: #45a049;
+    transform: scale(1.05);
+  }
+</style>
+</head>
+<body>
+<header>⚡ Reaction Speed Game</header>
+
+<div class="ad">[Top Banner Ad Slot]</div>
+
+<div id="gameBox" class="wait">Click to Start</div>
+
+<div id="result">Wait for Green!</div>
+<div id="avgTime"></div>
+
+<button id="resetBtn">Reset</button>
+
+<div class="ad">[Bottom Banner Ad Slot]</div>
+
+<script>
+  const gameBox = document.getElementById('gameBox');
+  const result = document.getElementById('result');
+  const avgTime = document.getElementById('avgTime');
+  const resetBtn = document.getElementById('resetBtn');
+
+  let startTime, endTime;
+  let timeoutId;
+  let times = [];
+
+  gameBox.addEventListener('click', () => {
+    if (gameBox.classList.contains('wait')) {
+      gameBox.textContent = "Wait for Green...";
+      gameBox.className = "ready";
+
+      const randomDelay = Math.floor(Math.random() * 4000) + 1000; // 1–5 sec
+      timeoutId = setTimeout(() => {
+        gameBox.className = "go";
+        gameBox.textContent = "CLICK!";
+        startTime = new Date().getTime();
+      }, randomDelay);
+    } 
+    else if (gameBox.classList.contains('ready')) {
+      clearTimeout(timeoutId);
+      result.textContent = "⛔ Too Soon! Wait for Green!";
+      gameBox.className = "wait";
+      gameBox.textContent = "Click to Try Again";
+    } 
+    else if (gameBox.classList.contains('go')) {
+      endTime = new Date().getTime();
+      const reactionTime = endTime - startTime;
+      times.push(reactionTime);
+      result.textContent = `⚡ Your reaction time: ${reactionTime} ms`;
+      gameBox.className = "wait";
+      gameBox.textContent = "Click to Play Again";
+
+      // Calculate average
+      const sum = times.reduce((a, b) => a + b, 0);
+      const avg = (sum / times.length).toFixed(0);
+      avgTime.textContent = `Average: ${avg} ms (${times.length} tries)`;
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    times = [];
+    avgTime.textContent = "";
+    result.textContent = "Wait for Green!";
+    gameBox.className = "wait";
+    gameBox.textContent = "Click to Start";
+  });
+</script>
+</body>
+</html>

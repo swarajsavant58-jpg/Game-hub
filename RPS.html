@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rock Paper Scissors</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #333;
+      color: #fff;
+      padding: 15px;
+      font-size: 22px;
+      font-weight: bold;
+    }
+    #score {
+      margin: 15px auto;
+      font-size: 22px;
+      font-weight: bold;
+    }
+    #score .player { color: green; }
+    #score .bot { color: red; }
+    #score .draws { color: black; }
+    .choices button {
+      font-size: 18px;
+      padding: 12px 20px;
+      margin: 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      transition: transform 0.2s, background 0.3s;
+    }
+    .choices button:hover {
+      background: #45a049;
+      transform: scale(1.1);
+    }
+    .hands {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 120px;
+      margin-top: 30px;
+      font-size: 70px;
+    }
+    .hand-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .hand {
+      transition: transform 0.3s;
+      animation: shake 0.5s ease-in-out;
+    }
+    .player .hand { transform: rotate(30deg); }
+    .computer .hand { transform: rotate(-30deg) scaleX(-1); }
+    .label {
+      margin-top: 10px;
+      font-weight: bold;
+      font-size: 18px;
+      color: #444;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateY(0); }
+      25% { transform: translateY(-10px); }
+      50% { transform: translateY(10px); }
+      75% { transform: translateY(-10px); }
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .win { color: green; }
+    .lose { color: red; }
+    .draw { color: orange; }
+    .ad {
+      margin: 20px auto;
+      padding: 10px;
+      border: 2px dashed #ccc;
+      background: #eee;
+      color: #666;
+      font-size: 14px;
+      text-align: center;
+      width: 90%;
+      max-width: 728px;
+    }
+    #chartContainer {
+      margin: 25px auto;
+      width: 90%;
+      max-width: 600px;
+    }
+  </style>
+</head>
+<body>
+  <header>✊✋✌️ Rock Paper Scissors</header>
+
+  <!-- ✅ Top Ad Slot -->
+  <div class="ad">[Top Banner Ad Slot]</div>
+
+  <div id="score">
+    <span class="player">Player: 0</span> | 
+    <span class="bot">Bot: 0</span> | 
+    <span class="draws">Draws: 0</span>
+  </div>
+
+  <div class="choices">
+    <button onclick="play('rock')">✊ Rock</button>
+    <button onclick="play('paper')">✋ Paper</button>
+    <button onclick="play('scissors')">✌️ Scissors</button>
+  </div>
+
+  <div class="hands">
+    <div class="hand-wrapper player">
+      <div id="playerHand" class="hand">❔</div>
+      <div class="label">Player</div>
+    </div>
+    <div class="hand-wrapper computer">
+      <div id="computerHand" class="hand">❔</div>
+      <div class="label">Bot</div>
+    </div>
+  </div>
+
+  <div id="result">Make your choice!</div>
+
+  <div id="chartContainer">
+    <canvas id="scoreChart"></canvas>
+  </div>
+
+  <!-- ✅ Bottom Ad Slot -->
+  <div class="ad">[Bottom Banner Ad Slot]</div>
+
+  <script>
+    let playerScore = 0;
+    let computerScore = 0;
+    let drawScore = 0;
+
+    const playerHandEl = document.getElementById("playerHand");
+    const computerHandEl = document.getElementById("computerHand");
+    const resultEl = document.getElementById("result");
+    const scoreEl = document.getElementById("score");
+
+    // Chart.js setup
+    const ctx = document.getElementById("scoreChart").getContext("2d");
+    const scoreChart = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: ["Player", "Bot", "Draws"],
+        datasets: [{
+          label: "Scores",
+          data: [0, 0, 0],
+          backgroundColor: ["green", "red", "orange"]
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+
+    function play(playerChoice) {
+      const choices = ["rock", "paper", "scissors"];
+      const emojis = { rock: "✊", paper: "✋", scissors: "✌️" };
+      const computerChoice = choices[Math.floor(Math.random() * 3)];
+
+      // reset animation
+      playerHandEl.classList.remove("hand");
+      computerHandEl.classList.remove("hand");
+      void playerHandEl.offsetWidth; 
+      void computerHandEl.offsetWidth;
+      playerHandEl.classList.add("hand");
+      computerHandEl.classList.add("hand");
+
+      setTimeout(() => {
+        playerHandEl.innerText = emojis[playerChoice];
+        computerHandEl.innerText = emojis[computerChoice];
+
+        let resultText = "";
+        if (playerChoice === computerChoice) {
+          resultText = "🤝 It's a Draw!";
+          resultEl.className = "draw";
+          drawScore++;
+        } else if (
+          (playerChoice === "rock" && computerChoice === "scissors") ||
+          (playerChoice === "paper" && computerChoice === "rock") ||
+          (playerChoice === "scissors" && computerChoice === "paper")
+        ) {
+          resultText = "🎉 You Win!";
+          resultEl.className = "win";
+          playerScore++;
+        } else {
+          resultText = "💀 You Lose!";
+          resultEl.className = "lose";
+          computerScore++;
+        }
+
+        resultEl.innerText = resultText;
+        scoreEl.innerHTML = 
+          `<span class="player">Player: ${playerScore}</span> | 
+           <span class="bot">Bot: ${computerScore}</span> | 
+           <span class="draws">Draws: ${drawScore}</span>`;
+
+        // ✅ Update chart
+        scoreChart.data.datasets[0].data = [playerScore, computerScore, drawScore];
+        scoreChart.update();
+      }, 500);
+    }
+  </script>
+</body>
+</html>

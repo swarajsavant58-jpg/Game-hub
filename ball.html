@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Brick Breaker Game</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Poppins', sans-serif;
+  }
+
+  body {
+    background: linear-gradient(180deg, #ffffff, #dbeafe);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  h1 {
+    margin-bottom: 6px;
+    color: #000;
+    font-size: 26px;
+  }
+
+  #lives {
+    margin-bottom: 8px;
+    font-size: 22px;
+  }
+
+  canvas {
+    background: #fff;
+    border: 3px solid #000;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    touch-action: none;
+  }
+
+  #info {
+    margin-top: 8px;
+    font-size: 18px;
+    color: #333;
+  }
+
+  button {
+    margin-top: 8px;
+    background: #000;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  button:hover {
+    background: #444;
+  }
+</style>
+</head>
+<body>
+  <h1>🧱 Brick Breaker</h1>
+  <div id="lives">❤️❤️❤️</div>
+  <canvas id="gameCanvas" width="360" height="520"></canvas>
+  <div id="info">Score: <span id="score">0</span></div>
+  <button onclick="document.location.reload()">Restart</button>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // Ball setup
+    const ballRadius = 8;
+    let x = canvas.width / 2;
+    let y = canvas.height - 50;
+    let dx = 3;
+    let dy = -3;
+
+    // Paddle setup
+    const paddleHeight = 14;
+    const paddleWidth = 80;
+    let paddleX = (canvas.width - paddleWidth) / 2;
+
+    // Game state
+    let rightPressed = false;
+    let leftPressed = false;
+    let score = 0;
+    let lives = 3;
+
+    // Bricks setup
+    const brickRowCount = 5;
+    const brickColumnCount = 6;
+    const brickWidth = 50;
+    const brickHeight = 18;
+    const brickPadding = 8;
+    const brickOffsetTop = 30;
+    const brickOffsetLeft = 20;
+
+    const bricks = [];
+    for (let c = 0; c < brickColumnCount; c++) {
+      bricks[c] = [];
+      for (let r = 0; r < brickRowCount; r++) {
+        bricks[c][r] = { x: 0, y: 0, status: 1 };
+      }
+    }
+
+    // --- Controls ---
+    document.addEventListener("keydown", keyDownHandler);
+    document.addEventListener("keyup", keyUpHandler);
+    document.addEventListener("mousemove", mouseMoveHandler);
+    canvas.addEventListener("touchmove", touchMoveHandler);
+
+    function keyDownHandler(e) {
+      if (e.key === "Right" || e.key === "ArrowRight") rightPressed = true;
+      else if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = true;
+    }
+
+    function keyUpHandler(e) {
+      if (e.key === "Right" || e.key === "ArrowRight") rightPressed = false;
+      else if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = false;
+    }
+
+    function mouseMoveHandler(e) {
+      const relativeX = e.clientX - canvas.offsetLeft;
+      if (relativeX > 0 && relativeX < canvas.width) {
+        paddleX = relativeX - paddleWidth / 2;
+      }
+    }
+
+    function touchMoveHandler(e) {
+      e.preventDefault();
+      const touchX = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+      if (touchX > 0 && touchX < canvas.width) {
+        paddleX = touchX - paddleWidth / 2;
+      }
+    }
+
+    // --- Mechanics ---
+    function collisionDetection() {
+      for (let c = 0; c < brickColumnCount; c++) {
+        for (let r = 0; r < brickRowCount; r++) {
+          const b = bricks[c][r];
+          if (b.status === 1) {
+            if (x > b.x && x < b.x + brickWidth && y > b.y && y < b.y + brickHeight) {
+              dy = -dy;
+              b.status = 0;
+              score++;
+              document.getElementById("score").innerText = score;
+              if (score === brickRowCount * brickColumnCount) {
+                alert("🏆 You Win!");
+                document.location.reload();
+              }
+            }
+          }
+        }
+      }
+    }
+
+    function drawBall() {
+      ctx.beginPath();
+      ctx.arc(x, y, ballRadius, 0, Math.PI * 2);
+      ctx.fillStyle = "#fbbf24";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawPaddle() {
+      ctx.beginPath();
+      ctx.rect(paddleX, canvas.height - paddleHeight - 8, paddleWidth, paddleHeight);
+      ctx.fillStyle = "#000";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    function drawBricks() {
+      for (let c = 0; c < brickColumnCount; c++) {
+        for (let r = 0; r < brickRowCount; r++) {
+          if (bricks[c][r].status === 1) {
+            const brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+            const brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+            bricks[c][r].x = brickX;
+            bricks[c][r].y = brickY;
+            ctx.beginPath();
+            ctx.rect(brickX, brickY, brickWidth, brickHeight);
+            ctx.fillStyle = "#2563eb";
+            ctx.fill();
+            ctx.closePath();
+          }
+        }
+      }
+    }
+
+    function drawLives() {
+      const heartHTML = "❤️".repeat(lives) + "🤍".repeat(3 - lives);
+      document.getElementById("lives").innerHTML = heartHTML;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBricks();
+      drawBall();
+      drawPaddle();
+      drawLives();
+      collisionDetection();
+
+      // --- Ball bouncing off walls ---
+      if (x + dx > canvas.width - ballRadius || x + dx < ballRadius) dx = -dx;
+      if (y + dy < ballRadius) dy = -dy;
+
+      // --- Ball hits paddle ---
+      else if (y + dy > canvas.height - paddleHeight - ballRadius - 8) {
+        if (x > paddleX && x < paddleX + paddleWidth) {
+          // Adjust bounce angle based on where it hits the paddle
+          const hitPos = (x - (paddleX + paddleWidth / 2)) / (paddleWidth / 2);
+          dx = hitPos * 4; // change direction based on position
+          dy = -Math.abs(dy); // bounce upward
+        } else if (y + dy > canvas.height - ballRadius) {
+          // Lost life
+          lives--;
+          drawLives();
+          if (lives <= 0) {
+            alert("💔 Game Over!");
+            document.location.reload();
+          } else {
+            // Reset ball
+            x = canvas.width / 2;
+            y = canvas.height - 50;
+            dx = 3 * (Math.random() > 0.5 ? 1 : -1);
+            dy = -3;
+          }
+        }
+      }
+
+      // Paddle movement
+      if (rightPressed && paddleX < canvas.width - paddleWidth) paddleX += 6;
+      else if (leftPressed && paddleX > 0) paddleX -= 6;
+
+      x += dx;
+      y += dy;
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+  </script>
+</body>
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tic Tac Toe Multi-Grid</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 15px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      max-width: 480px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 {
+      margin: 5px 0;
+      font-size: 24px;
+    }
+    #rules {
+      font-size: 14px;
+      margin: 8px 0 12px;
+      background: #fff;
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+    }
+    .ad-slot {
+      width: 100%;
+      height: 90px;
+      margin: 10px 0;
+      background: #e0e0e0;
+      border: 2px dashed #aaa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      color: #333;
+    }
+    .board {
+      display: grid;
+      gap: 5px;
+      margin: 15px auto;
+      max-width: 100%;
+    }
+    .cell {
+      background: white;
+      border: 2px solid #333;
+      font-size: 7vw; /* scale with screen */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      aspect-ratio: 1 / 1; /* square cells */
+      transition: background 0.2s;
+    }
+    .cell:hover {
+      background: #f1f1f1;
+    }
+    #status {
+      margin-top: 8px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+    select, button {
+      margin-top: 10px;
+      padding: 6px 10px;
+      font-size: 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button {
+      background: #4CAF50;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>❌ Tic-Tac-Toe ⭕</h1>
+
+    <!-- Replace this div with your AdSense code -->
+    <div class="ad-slot">Your Ad Here (Google AdSense)</div>
+
+    <div id="rules">📏 Rules: First to make 3 in a row (any grid size) wins.</div>
+
+    <label for="gridSize">Choose grid:</label>
+    <select id="gridSize">
+      <option value="3">3×3</option>
+      <option value="4">4×4</option>
+      <option value="6">6×6</option>
+    </select>
+    <button onclick="startGame()">Start Game</button>
+
+    <div class="board" id="board"></div>
+    <div id="status">Select grid & start</div>
+    <button onclick="resetGame()">Restart</button>
+  </div>
+
+  <script>
+    const boardEl = document.getElementById("board");
+    const statusEl = document.getElementById("status");
+    const gridSizeSelect = document.getElementById("gridSize");
+
+    let board = [];
+    let size = 3;
+    let winLength = 3;
+    let gameActive = false;
+
+    function startGame() {
+      size = parseInt(gridSizeSelect.value);
+      board = Array(size * size).fill(null);
+      gameActive = true;
+      statusEl.textContent = "Your turn (X)";
+      createBoard();
+    }
+
+    function createBoard() {
+      boardEl.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+      boardEl.innerHTML = "";
+      board.forEach((_, index) => {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        cell.dataset.index = index;
+        cell.addEventListener("click", handlePlayerMove);
+        boardEl.appendChild(cell);
+      });
+    }
+
+    function handlePlayerMove(e) {
+      const index = e.target.dataset.index;
+      if (!gameActive || board[index]) return;
+      makeMove(index, "X");
+      if (!gameActive) return;
+      setTimeout(botMove, 400);
+    }
+
+    function makeMove(index, player) {
+      board[index] = player;
+      document.querySelector(`[data-index="${index}"]`).textContent = player;
+
+      if (checkWin(player)) {
+        statusEl.textContent = player === "X" ? "🎉 You Win!" : "🤖 Bot Wins!";
+        gameActive = false;
+        return;
+      }
+
+      if (board.every(cell => cell)) {
+        statusEl.textContent = "It's a Draw!";
+        gameActive = false;
+        return;
+      }
+
+      statusEl.textContent = player === "X" ? "Bot's turn (O)" : "Your turn (X)";
+    }
+
+    function checkWin(player) {
+      const directions = [
+        [1, 0], [0, 1], [1, 1], [1, -1] // right, down, diagonal
+      ];
+
+      for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+          const idx = r * size + c;
+          if (board[idx] !== player) continue;
+
+          for (let [dr, dc] of directions) {
+            let count = 1;
+            let nr = r + dr, nc = c + dc;
+
+            while (
+              nr >= 0 && nr < size &&
+              nc >= 0 && nc < size &&
+              board[nr * size + nc] === player
+            ) {
+              count++;
+              if (count >= winLength) return true;
+              nr += dr; nc += dc;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    function botMove() {
+      if (!gameActive) return;
+      let move = findBestMove();
+      if (move === null) {
+        let available = board.map((v, i) => v ? null : i).filter(v => v !== null);
+        move = available[Math.floor(Math.random() * available.length)];
+      }
+      makeMove(move, "O");
+    }
+
+    function findBestMove() {
+      // Try to win
+      for (let i = 0; i < board.length; i++) {
+        if (!board[i]) {
+          board[i] = "O";
+          if (checkWin("O")) { board[i] = null; return i; }
+          board[i] = null;
+        }
+      }
+      // Block player
+      for (let i = 0; i < board.length; i++) {
+        if (!board[i]) {
+          board[i] = "X";
+          if (checkWin("X")) { board[i] = null; return i; }
+          board[i] = null;
+        }
+      }
+      return null;
+    }
+
+    function resetGame() {
+      board = Array(size * size).fill(null);
+      gameActive = true;
+      statusEl.textContent = "Your turn (X)";
+      createBoard();
+    }
+  </script>
+</body>
+</html>

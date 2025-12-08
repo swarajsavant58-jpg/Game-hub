@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Sudoku Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    h1 { margin-bottom: 10px; }
+    #timer { font-size: 18px; margin: 10px 0; color: #444; }
+    #message {
+      margin: 10px 0;
+      font-size: 16px;
+      font-weight: bold;
+      color: red;
+      display: none;
+    }
+    #sudoku {
+      display: grid;
+      grid-template-columns: repeat(9, 40px);
+      grid-template-rows: repeat(9, 40px);
+      gap: 2px;
+      margin: 20px 0;
+    }
+    input {
+      width: 40px;
+      height: 40px;
+      text-align: center;
+      font-size: 16px;
+      border: 1px solid #ccc;
+    }
+    input:disabled {
+      background: #eee;
+      color: #000;
+      font-weight: bold;
+    }
+    input.wrong {
+      background: #fdd;
+      border: 2px solid red;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 15px;
+      font-size: 16px;
+      border: none;
+      background: #333;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover { background: #555; }
+
+    /* Ad Slot Styles */
+    .ad {
+      margin: 15px auto;
+      padding: 10px;
+      border: 2px dashed #aaa;
+      background: #fafafa;
+      color: #666;
+      text-align: center;
+      width: 90%;
+      max-width: 728px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Ad Slot -->
+  <div class="ad">[728x90 Top Banner Ad Slot]</div>
+
+  <h1>🧩 Sudoku Game</h1>
+  <div id="timer">Time: 0s</div>
+  <div id="message">⚠ Invalid entry – please correct it.</div>
+  <div id="sudoku"></div>
+  <div>
+    <button onclick="newGame()">New Game</button>
+    <button onclick="checkSolution()">Check Solution</button>
+    <button onclick="showSolution()">Show Solution</button>
+    <button onclick="undoSolution()">Undo Solution</button>
+  </div>
+
+  <!-- Bottom Ad Slot -->
+  <div class="ad">[728x90 Bottom Banner Ad Slot]</div>
+
+  <script>
+    // Puzzles with solutions
+    const puzzles = [
+      {
+        puzzle: "530070000600195000098000060800060003400803001700020006060000280000419005000080079",
+        solution: "534678912672195348198342567859761423426853791713924856961537284287419635345286179"
+      },
+      {
+        puzzle: "200080300060070084030500209000105408000000000402706000301007040720040060004010003",
+        solution: "245986371169273584837514269976135428318492657452768931391627845723849165684351792"
+      },
+      {
+        puzzle: "000260701680070090190004500820100040004602900050003028009300074040050036703018000",
+        solution: "435269781682571493197834562826195347374682915951743628519326874248957136763418259"
+      }
+    ];
+
+    let currentPuzzle, timer = 0, interval;
+    let solutionShown = false;
+
+    function startTimer() {
+      clearInterval(interval);
+      timer = 0;
+      document.getElementById("timer").textContent = "Time: 0s";
+      interval = setInterval(() => {
+        timer++;
+        document.getElementById("timer").textContent = "Time: " + timer + "s";
+      }, 1000);
+    }
+
+    function createBoard(puzzleObj) {
+      const sudoku = document.getElementById("sudoku");
+      sudoku.innerHTML = "";
+      currentPuzzle = puzzleObj;
+      solutionShown = false;
+
+      for (let i = 0; i < 81; i++) {
+        let cell = document.createElement("input");
+        if (puzzleObj.puzzle[i] !== "0") {
+          cell.value = puzzleObj.puzzle[i];
+          cell.disabled = true;
+        } else {
+          cell.maxLength = 1;
+          cell.dataset.index = i;
+          cell.oninput = () => {
+            cell.value = cell.value.replace(/[^1-9]/g, "");
+            checkCell(cell, i);
+          };
+        }
+        sudoku.appendChild(cell);
+      }
+    }
+
+    function checkCell(cell, index) {
+      if (!cell.value) {
+        cell.classList.remove("wrong");
+        document.getElementById("message").style.display = "none";
+        return;
+      }
+      if (cell.value !== currentPuzzle.solution[index]) {
+        cell.classList.add("wrong");
+        document.getElementById("message").style.display = "block";
+      } else {
+        cell.classList.remove("wrong");
+        document.getElementById("message").style.display = "none";
+      }
+    }
+
+    function newGame() {
+      const puzzleObj = puzzles[Math.floor(Math.random() * puzzles.length)];
+      createBoard(puzzleObj);
+      startTimer();
+    }
+
+    function checkSolution() {
+      const cells = document.querySelectorAll("#sudoku input");
+      for (let i = 0; i < cells.length; i++) {
+        if (cells[i].disabled) continue;
+        if (cells[i].value !== currentPuzzle.solution[i]) {
+          alert("❌ Some numbers are wrong! Check again.");
+          return;
+        }
+      }
+      alert("✅ Congratulations! You solved it!");
+      newGame();
+    }
+
+    function showSolution() {
+      const cells = document.querySelectorAll("#sudoku input");
+      for (let i = 0; i < cells.length; i++) {
+        if (!cells[i].disabled) {
+          cells[i].dataset.original = cells[i].value; // save what player wrote
+          cells[i].value = currentPuzzle.solution[i];
+          cells[i].classList.remove("wrong");
+        }
+      }
+      solutionShown = true;
+      clearInterval(interval);
+      alert("🔍 Full solution shown! You can undo to continue.");
+    }
+
+    function undoSolution() {
+      if (!solutionShown) {
+        alert("No solution to undo!");
+        return;
+      }
+      const cells = document.querySelectorAll("#sudoku input");
+      for (let i = 0; i < cells.length; i++) {
+        if (!cells[i].disabled) {
+          cells[i].value = cells[i].dataset.original || "";
+        }
+      }
+      solutionShown = false;
+      startTimer();
+      alert("↩ Solution undone! Continue solving.");
+    }
+
+    // Start first puzzle
+    newGame();
+  </script>
+</body>
+</html>

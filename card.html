@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>🧠 Memory — Emoji Match</title>
+<style>
+  :root{
+    --bg:#f7f7f7;
+    --header:#333;
+    --accent:#4CAF50;
+    --card-size:calc(min(90vw,400px) / 4);
+  }
+  body{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    background:var(--bg);
+    color:#000;
+    text-align:center;
+  }
+  header{
+    background:var(--header);
+    color:#fff;
+    padding:14px 12px;
+    font-size:20px;
+    font-weight:700;
+  }
+  .ad{
+    margin:16px auto;
+    padding:10px;
+    border:2px dashed #ccc;
+    background:#eee;
+    color:#666;
+    width:90%;
+    max-width:728px;
+  }
+  .controls{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    align-items:center;
+    margin:12px 8px;
+    flex-wrap:wrap;
+  }
+  .controls .stat{ font-weight:700; }
+  button, .btn {
+    background:var(--accent);
+    color:#fff;
+    border:0;
+    padding:8px 12px;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:700;
+  }
+  button:hover, .btn:hover { transform:scale(1.03); }
+  #boardWrap{
+    width:min(420px,94vw);
+    margin:14px auto 8px;
+    perspective:1000px;
+  }
+  .board{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    justify-items:center;
+  }
+
+  .card{
+    width:var(--card-size);
+    height:var(--card-size);
+    position:relative;
+    transform-style:preserve-3d;
+    transition: transform 0.45s;
+    cursor:pointer;
+  }
+
+  .card.flipped{ transform: rotateY(180deg); cursor:default; }
+
+  .face{
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:8px;
+    backface-visibility:hidden;
+    box-shadow: 0 5px 8px rgba(0,0,0,0.15);
+    font-size: calc(var(--card-size) * 0.45);
+    user-select:none;
+  }
+
+  .front{
+    background:#ddd;
+  }
+
+  .back{
+    background:#fff;
+    transform: rotateY(180deg);
+    font-size: calc(var(--card-size) * 0.45);
+  }
+
+  .matched .face { box-shadow: inset 0 0 0 3px rgba(76,175,80,0.12); }
+
+  .bottom {
+    margin:10px auto 28px;
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+
+  #best{
+    font-size:14px;
+    color:#333;
+  }
+
+  @media (max-width:420px){
+    :root{ --card-size:calc((min(360px,90vw) - 36px) / 4); }
+  }
+</style>
+</head>
+<body>
+  <header>🧠 Memory — Emoji Match</header>
+
+  <div class="ad">[Top Banner Ad Slot]</div>
+
+  <div class="controls">
+    <div class="stat">Moves: <span id="moves">0</span></div>
+    <div class="stat">Time: <span id="time">0</span>s</div>
+    <div class="stat" id="best">Best: —</div>
+    <button id="restart">Restart</button>
+  </div>
+
+  <div id="boardWrap">
+    <div id="board" class="board" aria-live="polite"></div>
+  </div>
+
+  <div class="bottom">
+    <button id="shuffle">Shuffle Emojis</button>
+    <button id="changeSet">Change Emoji Set</button>
+  </div>
+
+  <div class="ad">[Bottom Banner Ad Slot]</div>
+
+<script>
+/* ====== Configuration ====== */
+const PAIRS = 8; // 4x4 grid
+const sets = [
+  ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮'], // animals (will pick first 8)
+  ['🌮','🍕','🍔','🍣','🍩','🍪','🍉','🍇','🍓','🍜','🍟','🍦'], // food
+  ['⚽','🏀','🏈','⚾','🎾','🏐','🏉','🥏','🎱','🪀','🏓','🎳'], // sports
+  ['😀','😎','🤩','🥳','😴','🤯','😇','🤠','🤖','👻','💩','👽'] // faces
+];
+
+let emojiSetIndex = 0;
+
+/* ====== State ====== */
+let boardEl = document.getElementById('board');
+let movesEl = document.getElementById('moves');
+let timeEl = document.getElementById('time');
+let bestEl = document.getElementById('best');
+let restartBtn = document.getElementById('restart');
+let shuffleBtn = document.getElementById('shuffle');
+let changeSetBtn = document.getElementById('changeSet');
+
+let firstCard = null;
+let lockBoard = false;
+let moves = 0;
+let matchedPairs = 0;
+let timer = null;
+let seconds = 0;
+let started = false;
+
+/* ====== Helpers ====== */
+function pickEmojis(setIndex){
+  const arr = [...sets[setIndex]];
+  shuffleArray(arr);
+  return arr.slice(0, PAIRS);
+}
+function shuffleArray(a){
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+}
+
+/* ====== Board Setup ====== */
+function buildBoard(){
+  // reset state
+  boardEl.innerHTML = '';
+  firstCard = null;
+  lockBoard = false;
+  moves = 0;
+  matchedPairs = 0;
+  seconds = 0;
+  started = false;
+  clearInterval(timer);
+  movesEl.textContent = moves;
+  timeEl.textContent = seconds;
+  loadBest();
+
+  // select emojis and create pairs
+  const chosen = pickEmojis(emojiSetIndex);
+  const pairs = [...chosen, ...chosen];
+  shuffleArray(pairs);
+
+  // create DOM cards
+  pairs.forEach((emoji, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.emoji = emoji;
+    card.dataset.index = idx;
+
+    const front = document.createElement('div');
+    front.className = 'face front';
+    front.textContent = '';
+
+    const back = document.createElement('div');
+    back.className = 'face back';
+    back.textContent = emoji;
+
+    card.appendChild(front);
+    card.appendChild(back);
+
+    card.addEventListener('click', onCardClick);
+    card.addEventListener('touchstart', onCardClick);
+
+    boardEl.appendChild(card);
+  });
+}
+
+/* ====== Timer & Best score ====== */
+function startTimer(){
+  if (started) return;
+  started = true;
+  timer = setInterval(() => {
+    seconds++;
+    timeEl.textContent = seconds;
+  }, 1000);
+}
+
+function stopTimer(){
+  clearInterval(timer);
+}
+
+/* Best stored as JSON: {moves: N, time: S} smaller is better by time then moves */
+function loadBest(){
+  const key = 'memory_best_set_' + emojiSetIndex;
+  const raw = localStorage.getItem(key);
+  if (!raw){ bestEl.textContent = 'Best: —'; return; }
+  const b = JSON.parse(raw);
+  bestEl.textContent = `Best: ${b.time}s / ${b.moves} moves`;
+}
+function saveBest(movesVal, timeVal){
+  const key = 'memory_best_set_' + emojiSetIndex;
+  const raw = localStorage.getItem(key);
+  if (!raw){
+    localStorage.setItem(key, JSON.stringify({moves: movesVal, time: timeVal}));
+    loadBest();
+    return;
+  }
+  const b = JSON.parse(raw);
+  // better if time lower, or if time equal and moves lower
+  if (timeVal < b.time || (timeVal === b.time && movesVal < b.moves)){
+    localStorage.setItem(key, JSON.stringify({moves: movesVal, time: timeVal}));
+    loadBest();
+  }
+}
+
+/* ====== Click handling ====== */
+function onCardClick(e){
+  if (lockBoard) return;
+  const card = this;
+  if (card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+  // start timer on first flip
+  if (!started) startTimer();
+
+  flipCard(card);
+
+  if (!firstCard){
+    firstCard = card;
+    return;
+  }
+
+  // second card clicked
+  moves++;
+  movesEl.textContent = moves;
+
+  if (card.dataset.emoji === firstCard.dataset.emoji){
+    // match
+    card.classList.add('matched');
+    firstCard.classList.add('matched');
+    // keep flipped
+    firstCard = null;
+    matchedPairs++;
+    if (matchedPairs === PAIRS){
+      // win
+      stopTimer();
+      setTimeout(() => {
+        alert(`🎉 You matched all! Time: ${seconds}s | Moves: ${moves}`);
+        saveBest(moves, seconds);
+      }, 250);
+    }
+    return;
+  } else {
+    // not match — flip back after delay
+    lockBoard = true;
+    setTimeout(() => {
+      unflipCard(card);
+      unflipCard(firstCard);
+      firstCard = null;
+      lockBoard = false;
+    }, 750);
+  }
+}
+
+/* ====== Flip / unflip helpers ====== */
+function flipCard(card){
+  card.classList.add('flipped');
+}
+function unflipCard(card){
+  card.classList.remove('flipped');
+}
+
+/* ====== Controls ====== */
+restartBtn.addEventListener('click', () => buildBoard());
+shuffleBtn.addEventListener('click', () => buildBoard());
+changeSetBtn.addEventListener('click', () => {
+  emojiSetIndex = (emojiSetIndex + 1) % sets.length;
+  buildBoard();
+});
+
+/* ====== Init ====== */
+buildBoard();
+</script>
+</body>
+</html>
