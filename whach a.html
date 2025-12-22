@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🐹 Whack-a-Mole</title>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f7f7f7;
+  color: #000;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background: #333;
+  color: #fff;
+  padding: 15px;
+  font-size: 22px;
+  font-weight: bold;
+}
+
+.scoreboard {
+  display: flex;
+  justify-content: space-around;
+  margin: 15px auto;
+  max-width: 500px;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.controls {
+  margin: 15px auto;
+}
+
+.controls button {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 16px;
+  cursor: pointer;
+  margin: 0 5px;
+  transition: transform 0.2s, background 0.3s;
+}
+
+.controls button:hover {
+  background: #45a049;
+  transform: scale(1.05);
+}
+
+#timeDisplay {
+  font-weight: bold;
+}
+
+.game {
+  display: grid;
+  grid-template-columns: repeat(3, 100px);
+  grid-gap: 15px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.hole {
+  width: 100px;
+  height: 100px;
+  background: #5a3825;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 5px 10px rgba(0,0,0,0.4);
+}
+
+/* Yellow mole without ears */
+.mole {
+  width: 80px;
+  height: 80px;
+  background: #ffcc00;
+  border-radius: 50%;
+  position: absolute;
+  bottom: -80px;
+  left: 10px;
+  transition: bottom 0.25s;
+  border: 2px solid #b38b00;
+}
+
+.mole.up { bottom: 10px; }
+
+#startBtn {
+  margin-top: 25px;
+  padding: 10px 25px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.3s;
+}
+#startBtn:hover {
+  background: #45a049;
+  transform: scale(1.05);
+}
+
+.ad {
+  margin: 20px auto;
+  padding: 10px;
+  border: 2px dashed #ccc;
+  background: #eee;
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+  width: 90%;
+  max-width: 728px;
+}
+
+/* Hammer animation */
+.hammer {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: #888;
+  border-radius: 4px;
+  transform-origin: top left;
+  animation: hit 0.3s forwards;
+}
+
+@keyframes hit {
+  0% { transform: rotate(-45deg) translate(0, 0); }
+  50% { transform: rotate(0deg) translate(15px, 15px); }
+  100% { transform: rotate(-30deg) translate(0, 0); opacity: 0; }
+}
+
+@media (max-width: 600px) {
+  .game { grid-template-columns: repeat(3, 80px); grid-gap: 10px; }
+  .hole { width: 80px; height: 80px; }
+  .mole { width: 65px; height: 65px; left: 8px; }
+}
+</style>
+</head>
+<body>
+<header>🐹 Whack-a-Mole</header>
+
+<div class="ad">[Top Banner Ad Slot]</div>
+
+<div class="scoreboard">
+  <div>Score: <span id="score">0</span></div>
+  <div>Time: <span id="time">30</span>s</div>
+</div>
+
+<div class="controls">
+  <button id="decreaseTime">−</button>
+  <span id="timeDisplay">30 seconds</span>
+  <button id="increaseTime">+</button>
+</div>
+
+<div class="game">
+  <div class="hole"></div>
+  <div class="hole"></div>
+  <div class="hole"></div>
+  <div class="hole"></div>
+  <div class="hole"></div>
+  <div class="hole"></div>
+  <div class="hole"></div>
+  <div class="hole"></div>
+  <div class="hole"></div>
+</div>
+
+<button id="startBtn">Start Game</button>
+
+<div class="ad">[Bottom Banner Ad Slot]</div>
+
+<script>
+const holes = document.querySelectorAll('.hole');
+const scoreDisplay = document.getElementById('score');
+const timeDisplay = document.getElementById('time');
+const startBtn = document.getElementById('startBtn');
+const increaseBtn = document.getElementById('increaseTime');
+const decreaseBtn = document.getElementById('decreaseTime');
+const timeLabel = document.getElementById('timeDisplay');
+
+let score = 0;
+let timeLeft = 30;
+let selectedTime = 30;
+let gameInterval;
+let moleTimer;
+
+function updateTimeDisplay() {
+  timeLabel.textContent = selectedTime + " seconds";
+}
+
+increaseBtn.addEventListener('click', () => { if (selectedTime < 60) { selectedTime += 5; updateTimeDisplay(); } });
+decreaseBtn.addEventListener('click', () => { if (selectedTime > 10) { selectedTime -= 5; updateTimeDisplay(); } });
+
+function randomHole() {
+  const index = Math.floor(Math.random() * holes.length);
+  return holes[index];
+}
+
+function showMole() {
+  const hole = randomHole();
+  const mole = document.createElement('div');
+  mole.classList.add('mole', 'up');
+  hole.appendChild(mole);
+
+  mole.addEventListener('click', (e) => {
+    score++;
+    scoreDisplay.textContent = score;
+
+    // Hammer animation
+    const hammer = document.createElement('div');
+    hammer.classList.add('hammer');
+    hammer.style.left = e.offsetX + 'px';
+    hammer.style.top = e.offsetY - 30 + 'px';
+    hole.appendChild(hammer);
+
+    setTimeout(() => hammer.remove(), 300);
+    mole.remove();
+  });
+
+  setTimeout(() => { mole.classList.remove('up'); setTimeout(() => mole.remove(), 200); }, 800);
+}
+
+function startGame() {
+  score = 0;
+  timeLeft = selectedTime;
+  scoreDisplay.textContent = score;
+  timeDisplay.textContent = timeLeft;
+  startBtn.disabled = true;
+
+  moleTimer = setInterval(showMole, 800);
+  gameInterval = setInterval(() => {
+    timeLeft--;
+    timeDisplay.textContent = timeLeft;
+
+    if (timeLeft <= 0) {
+      clearInterval(moleTimer);
+      clearInterval(gameInterval);
+      startBtn.disabled = false;
+      alert(`⏰ Time's up! Your final score: ${score}`);
+    }
+  }, 1000);
+}
+
+startBtn.addEventListener('click', startGame);
+</script>
+</body>
+</html>
