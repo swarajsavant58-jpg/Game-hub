@@ -1,21 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
   <meta charset="UTF-8">
 
   <title>Play Box Run Game Online – Free Reaction Game | Games Hub</title>
 
-  <meta name="description" content="Play Box Run game online for free. Jump over obstacles, test your reaction speed, and beat your high score. No download, works on mobile and desktop.">
+  <meta name="description" content="Play Box Run game online for free. Jump over obstacles, test your reaction speed, and beat your high score. No download required. Works on mobile and desktop.">
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="index, follow">
 
+  <!-- ✅ Canonical URL -->
   <link rel="canonical" href="https://game-hub-drab-three.vercel.app/box%20run.html">
 
   <!-- Open Graph -->
   <meta property="og:title" content="Play Box Run Game Online – Free Reaction Game">
-  <meta property="og:description" content="Play Box Run online for free. A fast-paced reaction game with increasing difficulty.">
-  <meta property="og:type" content="game">
+  <meta property="og:description" content="Play Box Run online for free. A fast-paced reaction game that tests your reflexes.">
+  <meta property="og:type" content="website">
   <meta property="og:url" content="https://game-hub-drab-three.vercel.app/box%20run.html">
 
   <!-- Game Schema -->
@@ -24,221 +25,164 @@
     "@context": "https://schema.org",
     "@type": "VideoGame",
     "name": "Box Run",
-    "description": "Box Run is a free online reaction game where players jump over obstacles and score points.",
+    "description": "Box Run is a free online reaction game where players jump over obstacles and score points by surviving longer.",
     "applicationCategory": "Game",
     "operatingSystem": "Browser",
+    "genre": "Arcade",
     "url": "https://game-hub-drab-three.vercel.app/box%20run.html"
   }
   </script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f8fafc;
+      text-align: center;
+      color: #111;
+    }
+    h1 {
+      margin: 15px 0;
+    }
+    canvas {
+      background: #fff;
+      border: 2px solid #000;
+      display: block;
+      margin: 0 auto;
+    }
+    #info {
+      margin: 10px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    button {
+      padding: 10px 16px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    section {
+      max-width: 800px;
+      margin: 25px auto;
+      padding: 10px;
+      line-height: 1.6;
+      font-size: 16px;
+      text-align: left;
+    }
+  </style>
 </head>
-  
+
 <body>
-  <header>Box run </header>
 
-  <div class="ad">[Top Banner Ad Slot]</div>
+  <h1>Box Run – Free Online Reaction Game</h1>
 
-  <canvas id="gameCanvas" width="800" height="250"></canvas>
+  <canvas id="gameCanvas" width="360" height="520"></canvas>
 
-  <div class="ad">[Below Game Ad Slot]</div>
+  <div id="info">
+    Score: <span id="score">0</span>
+  </div>
 
-  <div id="countdown"></div>
-  <div id="score">Score: 0</div>
-  <div id="gameOver">💀 Game Over!</div>
-  <button id="startBtn">Start Game</button>
-  <button id="restartBtn">Restart</button>
+  <button onclick="location.reload()">Restart Game</button>
 
-  <div class="ad">[Bottom Banner Ad Slot]</div>
-
+  <!-- GAME SCRIPT -->
   <script>
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
-    let dino = {
-      x: 50,
-      y: 200,
-      width: 40,
-      height: 40,
-      vy: 0,
-      gravity: 0.7,
-      jumpPower: -12,
-      isJumping: false,
-      rotation: 0,
-      flipDone: false
-    };
+    let boxY = canvas.height - 50;
+    let gravity = 1.2;
+    let velocity = 0;
+    let jumping = false;
 
-    let groundY = 240;
-    let obstacles = [];
-    let score = 0;
+    let obstacleX = canvas.width;
+    let obstacleWidth = 30;
+    let obstacleHeight = 60;
     let speed = 4;
-    let isAlive = true;
-    let frame = 0;
-    let gameStarted = false;
-    let sparks = [];
+
+    let score = 0;
+    let gameOver = false;
+
+    document.addEventListener("keydown", jump);
+    canvas.addEventListener("touchstart", jump);
 
     function jump() {
-      if (!dino.isJumping && isAlive && gameStarted) {
-        dino.vy = dino.jumpPower;
-        dino.isJumping = true;
-        dino.flipDone = false;
-
-        // sparks
-        for (let i = 0; i < 10; i++) {
-          sparks.push({
-            x: dino.x + dino.width / 2,
-            y: dino.y + dino.height,
-            vx: (Math.random() - 0.5) * 3,
-            vy: Math.random() * -2 - 1,
-            alpha: 1,
-            size: Math.random() * 2 + 2
-          });
-        }
+      if (!jumping) {
+        velocity = -15;
+        jumping = true;
       }
     }
 
+    function drawBox() {
+      ctx.fillStyle = "#2563eb";
+      ctx.fillRect(40, boxY, 30, 30);
+    }
+
+    function drawObstacle() {
+      ctx.fillStyle = "#dc2626";
+      ctx.fillRect(obstacleX, canvas.height - obstacleHeight, obstacleWidth, obstacleHeight);
+    }
+
     function update() {
-      if (!isAlive || !gameStarted) return;
+      if (gameOver) return;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Dino physics
-      dino.y += dino.vy;
-      dino.vy += dino.gravity;
+      velocity += gravity;
+      boxY += velocity;
 
-      if (dino.y >= 200) {
-        dino.y = 200;
-        dino.isJumping = false;
-        dino.rotation = 0;
+      if (boxY >= canvas.height - 30) {
+        boxY = canvas.height - 30;
+        jumping = false;
       }
 
-      // Flip animation
-      if (dino.isJumping && !dino.flipDone) {
-        dino.rotation += Math.PI / 40;
-        if (dino.rotation >= Math.PI) {
-          dino.rotation = Math.PI;
-          dino.flipDone = true;
-        }
+      obstacleX -= speed;
+
+      if (obstacleX < -obstacleWidth) {
+        obstacleX = canvas.width + Math.random() * 200;
+        score++;
+        document.getElementById("score").innerText = score;
       }
 
-      // Draw dino
-      ctx.save();
-      ctx.translate(dino.x + dino.width / 2, dino.y + dino.height / 2);
-      ctx.rotate(dino.rotation);
-      ctx.fillStyle = "#222";
-      ctx.fillRect(-dino.width / 2, -dino.height / 2, dino.width, dino.height);
-      ctx.restore();
-
-      // Sparks
-      for (let i = sparks.length - 1; i >= 0; i--) {
-        let sp = sparks[i];
-        sp.x += sp.vx;
-        sp.y += sp.vy;
-        sp.alpha -= 0.02;
-        sp.size *= 0.95;
-
-        ctx.fillStyle = `rgba(255, 140, 0, ${sp.alpha})`;
-        ctx.beginPath();
-        ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
-        ctx.fill();
-
-        if (sp.alpha <= 0) sparks.splice(i, 1);
+      if (
+        obstacleX < 70 &&
+        obstacleX + obstacleWidth > 40 &&
+        boxY + 30 > canvas.height - obstacleHeight
+      ) {
+        gameOver = true;
+        alert("Game Over! Your Score: " + score);
       }
 
-      // Obstacles
-      frame++;
-      if (frame % 100 === 0) {
-        if (obstacles.length === 0 || obstacles[obstacles.length - 1].x < canvas.width - 200) {
-          let cactusHeight = Math.random() < 0.5 ? 30 : 40;
-          obstacles.push({ x: canvas.width, y: 210, width: 20, height: cactusHeight });
-        }
-      }
-
-      for (let i = 0; i < obstacles.length; i++) {
-        let obs = obstacles[i];
-        obs.x -= speed;
-
-        ctx.fillStyle = "green";
-        ctx.fillRect(obs.x, obs.y + (40 - obs.height), obs.width, obs.height);
-
-        // collision
-        if (
-          dino.x < obs.x + obs.width &&
-          dino.x + dino.width > obs.x &&
-          dino.y + dino.height > obs.y
-        ) {
-          isAlive = false;
-          document.getElementById("gameOver").style.display = "block";
-          document.getElementById("restartBtn").style.display = "inline-block";
-        }
-      }
-      obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
-
-      // Ground
-      ctx.fillStyle = "#aaa";
-      ctx.fillRect(0, groundY, canvas.width, 10);
-
-      // Score
-      score++;
-      document.getElementById("score").innerText = "Score: " + score;
-
-      // Gradual speed-up
-      if (score % 600 === 0) speed += 0.3;
+      drawBox();
+      drawObstacle();
 
       requestAnimationFrame(update);
     }
 
-    // Controls
-    document.addEventListener("keydown", e => { if (e.code === "Space") jump(); });
-    document.addEventListener("touchstart", jump);
-
-    // Countdown
-    function startCountdown() {
-      let countdownDiv = document.getElementById("countdown");
-      let count = 3;
-      countdownDiv.style.display = "block";
-      countdownDiv.innerText = count;
-
-      let interval = setInterval(() => {
-        count--;
-        if (count > 0) {
-          countdownDiv.innerText = count;
-        } else {
-          countdownDiv.innerText = "Go!";
-          clearInterval(interval);
-          setTimeout(() => {
-            countdownDiv.style.display = "none";
-            gameStarted = true;
-            update();
-          }, 500);
-        }
-      }, 1000);
-    }
-
-    // Start button
-    document.getElementById("startBtn").addEventListener("click", () => {
-      document.getElementById("startBtn").style.display = "none";
-      startCountdown();
-    });
-
-    // Restart button
-    document.getElementById("restartBtn").addEventListener("click", () => location.reload());
+    update();
   </script>
-  <h2>About Box Run Game</h2>
-  <p>
-    Box Run is a fast-paced online reaction game where players must jump over obstacles
-    and survive as long as possible. The game gets faster over time, testing your reflexes
-    and concentration.
-  </p>
 
-  <h2>How to Play</h2>
-  <ul>
-    <li>Press <strong>Space</strong> or tap the screen to jump</li>
-    <li>Avoid hitting obstacles</li>
-    <li>Score increases the longer you survive</li>
-  </ul>
+  <!-- SEO CONTENT -->
+  <section>
+    <h2>About Box Run</h2>
+    <p>
+      Box Run is a fun and addictive online reaction game where players control a small box
+      and jump over incoming obstacles. The goal is simple: survive as long as possible and
+      beat your highest score. As the game progresses, obstacles appear faster, making it
+      more challenging and exciting.
+    </p>
 
-  <p>
-    Play Box Run for free directly in your browser. No download or login required.
-    The game works smoothly on mobile, tablet, and desktop devices.
-  </p>
+    <h2>How to Play Box Run</h2>
+    <ul>
+      <li>Press any key or tap the screen to jump</li>
+      <li>Avoid hitting the red obstacles</li>
+      <li>Your score increases over time</li>
+    </ul>
+
+    <p>
+      Box Run works smoothly on mobile phones, tablets, and desktop browsers. No downloads,
+      no sign-ups, and no installation required. Just open the game and start playing instantly.
+    </p>
+  </section>
+
 </body>
 </html>
