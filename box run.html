@@ -2,176 +2,127 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Play Box Run Game Online – Free Reaction Game</title>
-
-<meta name="description" content="Play Box Run game online for free. Jump over obstacles, test your reaction speed, and beat your high score.">
+<title>Box Run Game</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="index, follow">
-
-<link rel="canonical" href="https://game-hub-drab-three.vercel.app/box%20run.html">
 
 <style>
 body {
   margin: 0;
-  background: #f7f7f7;
   text-align: center;
   font-family: Arial, sans-serif;
-}
-header {
-  background: #333;
-  color: #fff;
-  padding: 12px;
-  font-size: 22px;
-  font-weight: bold;
+  background: #f5f5f5;
 }
 canvas {
   background: #fff;
-  margin: 20px auto;
+  border: 2px solid #000;
   display: block;
-  border: 2px solid #444;
+  margin: 20px auto;
 }
-#ad { margin: 10px; color: #666; }
-#score { font-size: 18px; font-weight: bold; }
-#gameOver { display: none; color: red; font-size: 22px; }
 button {
-  padding: 10px 16px;
+  padding: 10px 20px;
   font-size: 16px;
-  cursor: pointer;
 }
-#restartBtn { display: none; }
-#countdown { font-size: 40px; font-weight: bold; }
+#gameOver {
+  display: none;
+  color: red;
+  font-size: 22px;
+}
 </style>
 </head>
 
 <body>
 
-<header>Box Run</header>
+<h1>Box Run</h1>
 
-<div id="ad">[Ad Slot]</div>
+<canvas id="game" width="800" height="250"></canvas>
 
-<canvas id="gameCanvas" width="800" height="250"></canvas>
+<p id="score">Score: 0</p>
+<p id="gameOver">Game Over</p>
 
-<div id="countdown"></div>
-<div id="score">Score: 0</div>
-<div id="gameOver">💀 Game Over!</div>
-
-<button id="startBtn">Start Game</button>
-<button id="restartBtn">Restart</button>
+<button id="start">Start Game</button>
+<button id="restart" style="display:none">Restart</button>
 
 <script>
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+window.onload = () => {
 
-let dino = {
-  x: 50, y: 200, w: 40, h: 40,
-  vy: 0, gravity: 0.7, jump: -12, jumping: false
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  const startBtn = document.getElementById("start");
+  const restartBtn = document.getElementById("restart");
+  const scoreEl = document.getElementById("score");
+  const gameOverEl = document.getElementById("gameOver");
+
+  let box, obstacles, score, speed, running;
+
+  function init() {
+    box = { x: 50, y: 200, w: 40, h: 40, vy: 0 };
+    obstacles = [];
+    score = 0;
+    speed = 4;
+    running = true;
+    gameOverEl.style.display = "none";
+    restartBtn.style.display = "none";
+    loop();
+  }
+
+  function jump() {
+    if (box.y === 200) box.vy = -12;
+  }
+
+  function loop() {
+    if (!running) return;
+
+    ctx.clearRect(0,0,800,250);
+
+    // gravity
+    box.vy += 0.7;
+    box.y += box.vy;
+    if (box.y > 200) { box.y = 200; box.vy = 0; }
+
+    ctx.fillRect(box.x, box.y, box.w, box.h);
+
+    if (Math.random() < 0.02) {
+      obstacles.push({ x: 800, y: 210, w: 20, h: 40 });
+    }
+
+    obstacles.forEach(o => {
+      o.x -= speed;
+      ctx.fillStyle = "green";
+      ctx.fillRect(o.x, o.y, o.w, o.h);
+
+      if (
+        box.x < o.x + o.w &&
+        box.x + box.w > o.x &&
+        box.y + box.h > o.y
+      ) {
+        running = false;
+        gameOverEl.style.display = "block";
+        restartBtn.style.display = "inline-block";
+      }
+    });
+
+    obstacles = obstacles.filter(o => o.x + o.w > 0);
+
+    ctx.fillStyle = "#aaa";
+    ctx.fillRect(0, 240, 800, 10);
+
+    score++;
+    scoreEl.innerText = "Score: " + score;
+
+    requestAnimationFrame(loop);
+  }
+
+  document.addEventListener("keydown", e => e.code === "Space" && jump());
+  document.addEventListener("touchstart", jump);
+
+  startBtn.onclick = () => {
+    startBtn.style.display = "none";
+    init();
+  };
+
+  restartBtn.onclick = () => location.reload();
 };
-
-let obstacles = [];
-let score = 0;
-let speed = 4;
-let alive = true;
-let frame = 0;
-let started = false;
-let sparks = [];
-
-function jump() {
-  if (!dino.jumping && alive && started) {
-    dino.vy = dino.jump;
-    dino.jumping = true;
-    for (let i = 0; i < 8; i++) {
-      sparks.push({
-        x: dino.x + 20,
-        y: dino.y + 40,
-        vx: (Math.random() - 0.5) * 3,
-        vy: Math.random() * -2,
-        a: 1,
-        r: Math.random() * 3
-      });
-    }
-  }
-}
-
-function update() {
-  if (!started || !alive) return;
-
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  dino.y += dino.vy;
-  dino.vy += dino.gravity;
-
-  if (dino.y >= 200) {
-    dino.y = 200;
-    dino.jumping = false;
-  }
-
-  ctx.fillStyle = "#222";
-  ctx.fillRect(dino.x, dino.y, dino.w, dino.h);
-
-  sparks.forEach((s, i) => {
-    s.x += s.vx;
-    s.y += s.vy;
-    s.a -= 0.03;
-    ctx.fillStyle = rgba(255,140,0,${s.a});
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-    ctx.fill();
-    if (s.a <= 0) sparks.splice(i, 1);
-  });
-
-  frame++;
-  if (frame % 100 === 0) {
-    obstacles.push({ x: canvas.width, w: 20, h: 40 });
-  }
-
-  obstacles.forEach(o => {
-    o.x -= speed;
-    ctx.fillStyle = "green";
-    ctx.fillRect(o.x, 210, o.w, o.h);
-
-    if (
-      dino.x < o.x + o.w &&
-      dino.x + dino.w > o.x &&
-      dino.y + dino.h > 210
-    ) {
-      alive = false;
-      document.getElementById("gameOver").style.display = "block";
-      document.getElementById("restartBtn").style.display = "inline-block";
-    }
-  });
-
-  obstacles = obstacles.filter(o => o.x + o.w > 0);
-
-  ctx.fillStyle = "#aaa";
-  ctx.fillRect(0, 240, canvas.width, 10);
-
-  score++;
-  document.getElementById("score").innerText = "Score: " + score;
-
-  requestAnimationFrame(update);
-}
-
-document.addEventListener("keydown", e => e.code === "Space" && jump());
-document.addEventListener("touchstart", jump);
-
-document.getElementById("startBtn").onclick = () => {
-  document.getElementById("startBtn").style.display = "none";
-  let c = 3;
-  const cd = document.getElementById("countdown");
-  cd.innerText = c;
-  const t = setInterval(() => {
-    c--;
-    cd.innerText = c > 0 ? c : "GO!";
-    if (c <= 0) {
-      clearInterval(t);
-      cd.style.display = "none";
-      started = true;
-      update();
-    }
-  }, 1000);
-};
-
-document.getElementById("restartBtn").onclick = () => location.reload();
 </script>
 
 </body>
