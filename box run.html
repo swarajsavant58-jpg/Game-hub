@@ -2,66 +2,56 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title> Box Run</title>
+<title>Box Run</title>
 
 <style>
-  body{
-    margin:0;
-    background:#f7f7f7;
-    text-align:center;
-    font-family:Arial,sans-serif;
-    user-select:none;
+  body {
+    margin: 0;
+    background: #f7f7f7;
+    text-align: center;
+    font-family: Arial, sans-serif;
+    user-select: none;
+    overflow: hidden; /* 🔑 prevents scroll on Vercel */
   }
-  header{
-    background:#333;
-    color:#fff;
-    padding:12px;
-    font-size:22px;
-    font-weight:bold;
+  header {
+    background: #333;
+    color: #fff;
+    padding: 12px;
+    font-size: 22px;
+    font-weight: bold;
   }
-  .ad{
-    margin:15px auto;
-    padding:10px;
-    border:2px dashed #ccc;
-    background:#eee;
-    color:#666;
-    font-size:14px;
-    width:90%;
-    max-width:728px;
+  canvas {
+    background: #fff;
+    display: block;
+    margin: 20px auto;
+    border: 2px solid #444;
   }
-  canvas{
-    background:#fff;
-    display:block;
-    margin:20px auto;
-    border:2px solid #444;
+  #score {
+    font-size: 18px;
+    font-weight: bold;
   }
-  #score{
-    font-size:18px;
-    font-weight:bold;
+  #gameOver {
+    display: none;
+    font-size: 22px;
+    font-weight: bold;
+    margin-top: 15px;
+    color: red;
   }
-  #gameOver{
-    display:none;
-    font-size:22px;
-    font-weight:bold;
-    margin-top:15px;
-    color:red;
+  button {
+    margin-top: 12px;
+    padding: 8px 16px;
+    font-size: 16px;
+    background: #4CAF50;
+    border: none;
+    color: white;
+    border-radius: 5px;
+    cursor: pointer;
   }
-  button{
-    margin-top:12px;
-    padding:8px 16px;
-    font-size:16px;
-    background:#4CAF50;
-    border:none;
-    color:white;
-    border-radius:5px;
-    cursor:pointer;
-  }
-  #restartBtn{ display:none; }
-  #countdown{
-    font-size:40px;
-    font-weight:bold;
-    margin:10px;
-    display:none;
+  #restartBtn { display: none; }
+  #countdown {
+    font-size: 40px;
+    font-weight: bold;
+    display: none;
   }
 </style>
 </head>
@@ -70,103 +60,109 @@
 
 <header>Box Run</header>
 
-<div class="ad">[Top Ad]</div>
-
 <canvas id="gameCanvas" width="800" height="250"></canvas>
-
-<div class="ad">[Bottom Ad]</div>
 
 <div id="countdown"></div>
 <div id="score">Score: 0</div>
-<div id="gameOver">💀 Game Over!</div>
+<div id="gameOver">💀 Game Over</div>
 
 <button id="startBtn">Start Game</button>
 <button id="restartBtn">Restart</button>
 
 <script>
+/* ===== CANVAS ===== */
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-let dino = {
-  x:50,
-  y:200,
-  w:40,
-  h:40,
-  vy:0,
-  gravity:0.7,
-  jump:-12,
-  jumping:false,
-  rotation:0
+/* ===== GAME STATE ===== */
+let gameStarted = false;
+let isAlive = true;
+
+/* ===== PLAYER ===== */
+const player = {
+  x: 50,
+  y: 200,
+  w: 40,
+  h: 40,
+  vy: 0,
+  gravity: 0.7,
+  jumpPower: -12,
+  jumping: false,
+  rotation: 0
 };
 
+/* ===== WORLD ===== */
 let obstacles = [];
 let sparks = [];
+let frame = 0;
 let score = 0;
 let speed = 4;
-let frame = 0;
-let isAlive = true;
-let gameStarted = false;
 
-// 🔥 jump + sparks
-function jump(){
-  if(!dino.jumping && isAlive && gameStarted){
-    dino.vy = dino.jump;
-    dino.jumping = true;
+/* ===== INPUT (VERCEL SAFE) ===== */
+window.addEventListener("keydown", e => {
+  if (e.code === "Space") {
+    e.preventDefault();
+    if (gameStarted && isAlive) jump();
+  }
+}, { passive: false });
 
-    for(let i=0;i<14;i++){
+window.addEventListener("touchstart", e => {
+  if (gameStarted && isAlive) jump();
+}, { passive: true });
+
+/* ===== JUMP ===== */
+function jump() {
+  if (!player.jumping) {
+    player.vy = player.jumpPower;
+    player.jumping = true;
+
+    // sparks
+    for (let i = 0; i < 12; i++) {
       sparks.push({
-        x: dino.x + dino.w/2,
-        y: dino.y + dino.h,
-        vx: (Math.random()-0.5)*4,
-        vy: Math.random()*-3 - 1,
+        x: player.x + player.w / 2,
+        y: player.y + player.h,
+        vx: (Math.random() - 0.5) * 4,
+        vy: Math.random() * -3 - 1,
         alpha: 1,
-        size: Math.random()*2 + 2
+        size: Math.random() * 2 + 2
       });
     }
   }
 }
 
-// controls
-document.addEventListener("keydown", e=>{
-  if(e.code==="Space"){
-    e.preventDefault();
-    jump();
-  }
-});
-document.addEventListener("touchstart", jump);
+/* ===== GAME LOOP (ALWAYS RUNNING) ===== */
+function update() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-function update(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  /* ground */
+  ctx.fillStyle = "#aaa";
+  ctx.fillRect(0, 240, canvas.width, 10);
 
-  // ground
-  ctx.fillStyle="#aaa";
-  ctx.fillRect(0,240,canvas.width,10);
+  if (gameStarted && isAlive) {
 
-  if(isAlive && gameStarted){
+    /* physics */
+    player.y += player.vy;
+    player.vy += player.gravity;
 
-    // dino physics
-    dino.y += dino.vy;
-    dino.vy += dino.gravity;
-
-    if(dino.y >= 200){
-      dino.y = 200;
-      dino.vy = 0;
-      dino.jumping = false;
-      dino.rotation = 0;
+    if (player.y >= 200) {
+      player.y = 200;
+      player.vy = 0;
+      player.jumping = false;
+      player.rotation = 0;
     }
 
-    // draw box
+    /* draw player */
     ctx.save();
-    ctx.translate(dino.x+dino.w/2, dino.y+dino.h/2);
-    ctx.rotate(dino.rotation);
-    ctx.fillStyle="#222";
-    ctx.fillRect(-dino.w/2,-dino.h/2,dino.w,dino.h);
+    ctx.translate(player.x + player.w / 2, player.y + player.h / 2);
+    ctx.rotate(player.rotation);
+    ctx.fillStyle = "#222";
+    ctx.fillRect(-player.w / 2, -player.h / 2, player.w, player.h);
     ctx.restore();
 
-    if(dino.jumping) dino.rotation += Math.PI/60;
+    if (player.jumping) player.rotation += Math.PI / 60;
 
-    // ✨ sparks
-    for(let i=sparks.length-1;i>=0;i--){
+    /* sparks */
+    for (let i = sparks.length - 1; i >= 0; i--) {
       let s = sparks[i];
       s.x += s.vx;
       s.y += s.vy;
@@ -175,81 +171,76 @@ function update(){
 
       ctx.fillStyle = rgba(255,140,0,${s.alpha});
       ctx.beginPath();
-      ctx.arc(s.x,s.y,s.size,0,Math.PI*2);
+      ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
       ctx.fill();
 
-      if(s.alpha <= 0) sparks.splice(i,1);
+      if (s.alpha <= 0) sparks.splice(i, 1);
     }
 
-    // obstacles
+    /* obstacles */
     frame++;
-    if(frame % 100 === 0){
+    if (frame % 100 === 0) {
       obstacles.push({
-        x:canvas.width,
-        y:210,
-        w:20,
-        h:Math.random()<0.5?30:40
+        x: canvas.width,
+        y: 210,
+        w: 20,
+        h: Math.random() < 0.5 ? 30 : 40
       });
     }
 
-    for(let i=obstacles.length-1;i>=0;i--){
+    for (let i = obstacles.length - 1; i >= 0; i--) {
       let o = obstacles[i];
       o.x -= speed;
 
-      ctx.fillStyle="green";
-      ctx.fillRect(o.x,o.y+(40-o.h),o.w,o.h);
+      ctx.fillStyle = "green";
+      ctx.fillRect(o.x, o.y + (40 - o.h), o.w, o.h);
 
-      if(
-        dino.x < o.x+o.w &&
-        dino.x+dino.w > o.x &&
-        dino.y+dino.h > o.y+(40-o.h)
-      ){
-        isAlive=false;
-        document.getElementById("gameOver").style.display="block";
-        document.getElementById("restartBtn").style.display="inline-block";
+      if (
+        player.x < o.x + o.w &&
+        player.x + player.w > o.x &&
+        player.y + player.h > o.y + (40 - o.h)
+      ) {
+        isAlive = false;
+        document.getElementById("gameOver").style.display = "block";
+        document.getElementById("restartBtn").style.display = "inline-block";
       }
 
-      if(o.x+o.w < 0) obstacles.splice(i,1);
+      if (o.x + o.w < 0) obstacles.splice(i, 1);
     }
 
     score++;
-    document.getElementById("score").innerText="Score: "+score;
+    document.getElementById("score").innerText = "Score: " + score;
 
-    if(score % 600 === 0) speed += 0.3;
+    if (score % 600 === 0) speed += 0.3;
   }
 
   requestAnimationFrame(update);
 }
 
-// countdown
-function startCountdown(){
-  let cd = document.getElementById("countdown");
+/* ===== START ===== */
+function startGame() {
+  document.getElementById("startBtn").style.display = "none";
+  const cd = document.getElementById("countdown");
   let c = 3;
-  cd.style.display="block";
-  cd.innerText=c;
+  cd.style.display = "block";
+  cd.innerText = c;
 
-  let timer = setInterval(()=>{
+  const t = setInterval(() => {
     c--;
-    if(c>0) cd.innerText=c;
-    else{
-      cd.innerText="GO!";
-      clearInterval(timer);
-      setTimeout(()=>{
-        cd.style.display="none";
-        gameStarted=true;
-      },500);
+    if (c > 0) cd.innerText = c;
+    else {
+      clearInterval(t);
+      cd.style.display = "none";
+      gameStarted = true;
     }
-  },1000);
+  }, 1000);
 }
 
-document.getElementById("startBtn").onclick = ()=>{
-  document.getElementById("startBtn").style.display="none";
-  startCountdown();
-};
+document.getElementById("startBtn").onclick = startGame;
+document.getElementById("restartBtn").onclick = () => location.reload();
 
-document.getElementById("restartBtn").onclick = ()=>location.reload();
-
-update(); // start loop
+/* 🔥 START LOOP */
+update();
 </script>
 
 </body>
